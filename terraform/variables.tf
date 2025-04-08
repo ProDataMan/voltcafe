@@ -3,16 +3,6 @@ variable "aws_region" {
   default     = "us-west-1"
 }
 
-variable "aws_access_key_id" {
-  description = "AWS Access Key ID"
-  type        = string
-}
-
-variable "aws_secret_access_key" {
-  description = "AWS Secret Access Key"
-  type        = string
-}
-
 variable "key_name" {
   description = "Name of the SSH key pair in AWS"
   type        = string

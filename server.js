@@ -114,10 +114,11 @@ app.get('/get-partner-token', async (req, res) => {
 
 app.get('/register', async (req, res) => {
   const PARTNER_TOKEN_LOCAL = PARTNER_TOKEN || 'your_partner_token_here';
+  const domain = new URL(REDIRECT_URI).hostname; // Dynamically extract domain from REDIRECT_URI
   try {
     const response = await axios.post(
       'https://fleet-api.prd.na.vn.cloud.tesla.com/api/1/partner_accounts',
-      { domain: '54.123.45.67' }, // Replace with your EC2 public IP after deployment
+      { domain: domain }, // Use dynamic domain
       { headers: { Authorization: `Bearer ${PARTNER_TOKEN_LOCAL}`, 'Content-Type': 'application/json' } }
     );
     console.log('Registration Status:', response.status);

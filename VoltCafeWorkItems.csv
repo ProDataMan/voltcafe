@@ -1,0 +1,29 @@
+Work Item Type,Title,Description,Acceptance Criteria,Story Points,Original Estimate
+Epic,Volt Cafe Vending Platform,"<p>Create a centralized app to order and vend items from multiple vending machines in a single transaction.</p>",,,
+User Story,View vending machine inventory,"<p>As a user, I want to view available products from all vending machines, so I can select items to purchase.</p>","<p>- Products grouped by machine<br>- Names, quantities, and prices clearly displayed<br>- Sold-out items marked visibly</p>",8,
+Task,Create inventory database schema,,, ,4
+Task,Develop backend API to serve inventory,,, ,8
+Task,Build frontend inventory listing (React Native),,, ,8
+Task,Implement sold-out indicators in UI,,, ,4
+User Story,Select products and add to shopping cart,"<p>As a user, I want to select products from vending machines and add them to a unified cart for single payment.</p>","<p>- Items appear in unified cart<br>- Cart allows adjustment/removal<br>- Supports multiple machines</p>",8,
+Task,Develop cart management logic (frontend),,, ,8
+Task,UI for cart interaction (add/remove/edit),,, ,8
+Task,Test cart functionality across multiple machines,,, ,4
+User Story,Checkout and pay for items,"<p>As a user, I want to pay once for all items in my cart to complete my purchase.</p>","<p>- Secure Stripe payment integration<br>- Payment success confirmation<br>- Clear error handling</p>",8,
+Task,Integrate Stripe payment (backend),,, ,8
+Task,Frontend Stripe checkout UI,,, ,8
+Task,Handle payment success/error scenarios,,, ,4
+User Story,Send vend commands to vending machines,"<p>As the system, I want to send vend commands after successful payment so products are dispensed correctly.</p>","<p>- Commands sent after payment<br>- Commands match purchased products<br>- Errors clearly logged</p>",8,
+Task,Create backend logic for sending vend commands,,, ,8
+Task,Develop simulator/mock vending machine API for testing,,, ,6
+Task,Implement failure handling logic,,, ,4
+User Story,Real-time inventory updates,"<p>As a user, I want real-time inventory updates after vending to view accurate availability.</p>","<p>- Inventory updated immediately after vend<br>- Accurate without refresh</p>",5,
+Task,Implement backend inventory decrement logic,,, ,6
+Task,Frontend real-time inventory refresh,,, ,4
+User Story,Vending completion notification,"<p>As a user, I want notifications when vending completes to know when to collect items.</p>","<p>- Notification sent upon vend completion<br>- Clearly lists dispensed items<br>- Clearly notifies vend failures</p>",3,
+Task,Backend event trigger for vending completion,,, ,4
+Task,Frontend notification display (push/websocket),,, ,6
+User Story,Admin dashboard for inventory monitoring,"<p>As an admin, I want real-time inventory and transaction monitoring.</p>","<p>- Secure login<br>- Real-time inventory and transactions<br>- Web accessible</p>",5,
+Task,Create admin login and authentication,,, ,6
+Task,Develop admin dashboard UI,,, ,8
+Task,API endpoints for dashboard data,,, ,6

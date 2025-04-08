@@ -1,4 +1,5 @@
 .env
+.env.sav
 node_modules/
 
 # Terraform files
