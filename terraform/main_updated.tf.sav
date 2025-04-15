@@ -1,3 +1,4 @@
+
 provider "aws" {
   region = var.aws_region
 }
@@ -32,7 +33,8 @@ locals {
   existing_pub_key = fileexists("${var.private_key_path}") && fileexists("${var.private_key_path}.pub") ? file("${var.private_key_path}.pub") : ""
   public_key       = length(trimspace(local.existing_pub_key)) > 0 ? local.existing_pub_key : tls_private_key.voltcafe_key.public_key_openssh
   existing_env     = fileexists("../.env") ? file("../.env") : ""
-  env_lines        = split("\n", local.existing_env)
+  env_lines        = split("
+", local.existing_env)
 
   updated_lines = distinct(concat(
     [ for line in local.env_lines : line if !startswith(line, "REDIRECT_URI=") && !startswith(line, "POSTGRES_HOST=") && !startswith(line, "POSTGRES_DB=") && !startswith(line, "POSTGRES_USER=") && !startswith(line, "POSTGRES_PASSWORD=") && !startswith(line, "POSTGRES_PORT=") ],
@@ -46,7 +48,8 @@ locals {
     ]
   ))
 
-  updated_env = join("\n", local.updated_lines)
+  updated_env = join("
+", local.updated_lines)
 }
 
 resource "aws_key_pair" "voltcafe_key" {
@@ -171,14 +174,9 @@ resource "null_resource" "deploy_files" {
       "cd /var/www/voltcafe",
       "npm init -y",
       "npm install express axios dotenv querystring pg",
-      "sudo -u postgres psql -c \"ALTER USER postgres PASSWORD '${var.postgres_password}'\"",
-      "sudo -u postgres createdb volt_cafe || true",
+      "sudo -u postgres psql -c "ALTER USER postgres PASSWORD '${var.postgres_password}';"",
+      "sudo -u postgres createdb volt_cafe",
       "sudo -u postgres psql -d volt_cafe -f /tmp/init_volt_cafe.sql",
-      "POSTGRES_CONF=$(sudo find /etc/postgresql -name postgresql.conf | head -n 1)",
-      "PG_HBA_CONF=$(sudo find /etc/postgresql -name pg_hba.conf | head -n 1)",
-      "sudo sed -i \"s/^#*listen_addresses.*/listen_addresses = '*'/\" \"$POSTGRES_CONF\"",
-      "echo 'host all all 0.0.0.0/0 md5' | sudo tee -a \"$PG_HBA_CONF\"",
-      "sudo systemctl restart postgresql",
       "pm2 start server.js --name voltcafe -f",
       "pm2 save",
       "sudo pm2 startup systemd -u ubuntu --hp /home/ubuntu",

@@ -34,19 +34,15 @@ locals {
   existing_env     = fileexists("../.env") ? file("../.env") : ""
   env_lines        = split("\n", local.existing_env)
 
-  updated_lines = distinct(concat(
-    [ for line in local.env_lines : line if !startswith(line, "REDIRECT_URI=") && !startswith(line, "POSTGRES_HOST=") && !startswith(line, "POSTGRES_DB=") && !startswith(line, "POSTGRES_USER=") && !startswith(line, "POSTGRES_PASSWORD=") && !startswith(line, "POSTGRES_PORT=") ],
-    [
-      "REDIRECT_URI=https://${aws_instance.voltcafe_server.public_ip}:3000/callback",
-      "POSTGRES_HOST=${aws_instance.voltcafe_server.public_ip}",
-      "POSTGRES_DB=volt_cafe",
-      "POSTGRES_USER=postgres",
-      "POSTGRES_PASSWORD=${var.postgres_password}",
-      "POSTGRES_PORT=5432"
-    ]
-  ))
+  filtered_env_lines = [
+    for line in local.env_lines :
+    line if !startswith(trimspace(line), "REDIRECT_URI=")
+  ]
 
-  updated_env = join("\n", local.updated_lines)
+  redirect_uri_line = "REDIRECT_URI=https://${aws_instance.voltcafe_server.public_ip}:3000/callback"
+
+  final_env_lines = concat(local.filtered_env_lines, [local.redirect_uri_line])
+  updated_env     = join("\n", local.final_env_lines)
 }
 
 resource "aws_key_pair" "voltcafe_key" {
@@ -56,7 +52,7 @@ resource "aws_key_pair" "voltcafe_key" {
 
 resource "aws_security_group" "voltcafe_sg" {
   name        = "voltcafe-sg"
-  description = "Allow SSH, HTTP, HTTPS, Node.js, and PostgreSQL"
+  description = "Allow SSH, HTTP, HTTPS, and Node.js traffic"
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
@@ -124,6 +120,7 @@ resource "local_file" "env_file" {
   filename   = "../.env.generated"
   lifecycle {
     create_before_destroy = true
+    #prevent_destroy = true
   }
 }
 
@@ -139,10 +136,10 @@ resource "null_resource" "deploy_files" {
       "sudo mkdir -p /var/www/voltcafe",
       "sudo chown ubuntu:ubuntu /var/www/voltcafe",
       "sudo apt-get update",
-      "sudo apt-get install -y apache2 nodejs npm openssl postgresql postgresql-contrib",
+      "sudo apt-get install -y apache2 nodejs npm openssl",
       "sudo systemctl enable apache2",
       "sudo systemctl start apache2",
-      "sudo npm install -g pm2"
+      "sudo npm install -g pm2 || { echo 'Failed to install PM2'; exit 1; }"
     ]
   }
 
@@ -161,29 +158,41 @@ resource "null_resource" "deploy_files" {
     destination = "/var/www/voltcafe/public-key.pem"
   }
 
+  # Upload SQL script to server
   provisioner "file" {
     source      = "${path.module}/init_volt_cafe.sql"
     destination = "/tmp/init_volt_cafe.sql"
   }
 
+
   provisioner "remote-exec" {
     inline = [
+      "echo 'Deploying .env content:'",
+      "cat /var/www/voltcafe/.env || echo 'Failed to read .env on server'",
+      "sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/voltcafe.key -out /etc/ssl/certs/voltcafe.crt -subj \"/CN=${aws_instance.voltcafe_server.public_ip}\"",
+      "sudo a2enmod ssl",
+      "sudo bash -c \"echo '<VirtualHost *:443>\n  SSLEngine on\n  SSLCertificateFile /etc/ssl/certs/voltcafe.crt\n  SSLCertificateKeyFile /etc/ssl/private/voltcafe.key\n  ProxyPreserveHost On\n  ProxyPass / http://localhost:3000/\n  ProxyPassReverse / http://localhost:3000/\n</VirtualHost>' > /etc/apache2/sites-available/default-ssl.conf\"",
+      "sudo a2ensite default-ssl.conf",
+      "sudo bash -c \"echo '<VirtualHost *:80>\n  ProxyPreserveHost On\n  ProxyPass / http://localhost:3000/\n  ProxyPassReverse / http://localhost:3000/\n</VirtualHost>' > /etc/apache2/sites-available/000-default.conf\"",
       "cd /var/www/voltcafe",
-      "npm init -y",
-      "npm install express axios dotenv querystring pg",
-      "sudo -u postgres psql -c \"ALTER USER postgres PASSWORD '${var.postgres_password}'\"",
-      "sudo -u postgres createdb volt_cafe || true",
-      "sudo -u postgres psql -d volt_cafe -f /tmp/init_volt_cafe.sql",
-      "POSTGRES_CONF=$(sudo find /etc/postgresql -name postgresql.conf | head -n 1)",
-      "PG_HBA_CONF=$(sudo find /etc/postgresql -name pg_hba.conf | head -n 1)",
-      "sudo sed -i \"s/^#*listen_addresses.*/listen_addresses = '*'/\" \"$POSTGRES_CONF\"",
-      "echo 'host all all 0.0.0.0/0 md5' | sudo tee -a \"$PG_HBA_CONF\"",
-      "sudo systemctl restart postgresql",
-      "pm2 start server.js --name voltcafe -f",
+      "npm init -y || { echo 'Failed to init npm'; exit 1; }",
+      "npm install express axios dotenv querystring || { echo 'Failed to install dependencies'; exit 1; }",
+      "pm2 start server.js --name voltcafe -f || pm2 restart voltcafe || { echo 'Failed to start or restart PM2'; exit 1; }",
       "pm2 save",
       "sudo pm2 startup systemd -u ubuntu --hp /home/ubuntu",
-      "sudo a2enmod ssl proxy proxy_http",
+      "sudo a2enmod proxy",
+      "sudo a2enmod proxy_http",
       "sudo systemctl restart apache2"
+    ]
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo apt-get update",
+      "sudo apt-get install -y postgresql postgresql-contrib",
+      "sudo -u postgres psql -c \"ALTER USER postgres PASSWORD '${var.postgres_password}';\"",
+      "sudo -u postgres createdb volt_cafe",
+      "sudo -u postgres psql -d volt_cafe -f /tmp/init_volt_cafe.sql"
     ]
   }
 

@@ -1,3 +1,4 @@
+
 provider "aws" {
   region = var.aws_region
 }
@@ -28,30 +29,9 @@ resource "local_file" "voltcafe_key_pub_file" {
   filename = "${var.private_key_path}.pub"
 }
 
-locals {
-  existing_pub_key = fileexists("${var.private_key_path}") && fileexists("${var.private_key_path}.pub") ? file("${var.private_key_path}.pub") : ""
-  public_key       = length(trimspace(local.existing_pub_key)) > 0 ? local.existing_pub_key : tls_private_key.voltcafe_key.public_key_openssh
-  existing_env     = fileexists("../.env") ? file("../.env") : ""
-  env_lines        = split("\n", local.existing_env)
-
-  updated_lines = distinct(concat(
-    [ for line in local.env_lines : line if !startswith(line, "REDIRECT_URI=") && !startswith(line, "POSTGRES_HOST=") && !startswith(line, "POSTGRES_DB=") && !startswith(line, "POSTGRES_USER=") && !startswith(line, "POSTGRES_PASSWORD=") && !startswith(line, "POSTGRES_PORT=") ],
-    [
-      "REDIRECT_URI=https://${aws_instance.voltcafe_server.public_ip}:3000/callback",
-      "POSTGRES_HOST=${aws_instance.voltcafe_server.public_ip}",
-      "POSTGRES_DB=volt_cafe",
-      "POSTGRES_USER=postgres",
-      "POSTGRES_PASSWORD=${var.postgres_password}",
-      "POSTGRES_PORT=5432"
-    ]
-  ))
-
-  updated_env = join("\n", local.updated_lines)
-}
-
 resource "aws_key_pair" "voltcafe_key" {
   key_name   = var.key_name
-  public_key = local.public_key
+  public_key = fileexists("${var.private_key_path}.pub") ? file("${var.private_key_path}.pub") : tls_private_key.voltcafe_key.public_key_openssh
 }
 
 resource "aws_security_group" "voltcafe_sg" {
@@ -91,7 +71,7 @@ resource "aws_security_group" "voltcafe_sg" {
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["YOUR.IP.ADDR.ONLY/32"]
   }
 
   egress {
@@ -118,33 +98,25 @@ resource "aws_instance" "voltcafe_server" {
   }
 }
 
-resource "local_file" "env_file" {
+resource "local_file" "env_generated_file" {
   depends_on = [aws_instance.voltcafe_server]
-  content    = local.updated_env
   filename   = "../.env.generated"
-  lifecycle {
-    create_before_destroy = true
-  }
+  content    = join("\n", [
+    "REDIRECT_URI=https://${aws_instance.voltcafe_server.public_ip}:3000/callback",
+    "POSTGRES_HOST=${aws_instance.voltcafe_server.public_ip}",
+    "POSTGRES_PORT=5432",
+    "POSTGRES_DB=volt_cafe",
+    "POSTGRES_USER=postgres",
+    "POSTGRES_PASSWORD=${var.postgres_password}"
+  ])
 }
 
 resource "null_resource" "deploy_files" {
   depends_on = [
     aws_instance.voltcafe_server,
-    local_file.env_file,
+    local_file.env_generated_file,
     local_file.voltcafe_key_pub_file
   ]
-
-  provisioner "remote-exec" {
-    inline = [
-      "sudo mkdir -p /var/www/voltcafe",
-      "sudo chown ubuntu:ubuntu /var/www/voltcafe",
-      "sudo apt-get update",
-      "sudo apt-get install -y apache2 nodejs npm openssl postgresql postgresql-contrib",
-      "sudo systemctl enable apache2",
-      "sudo systemctl start apache2",
-      "sudo npm install -g pm2"
-    ]
-  }
 
   provisioner "file" {
     source      = "../server.js"
@@ -157,33 +129,26 @@ resource "null_resource" "deploy_files" {
   }
 
   provisioner "file" {
-    content     = local.public_key
+    content     = fileexists("${var.private_key_path}.pub") ? file("${var.private_key_path}.pub") : tls_private_key.voltcafe_key.public_key_openssh
     destination = "/var/www/voltcafe/public-key.pem"
-  }
-
-  provisioner "file" {
-    source      = "${path.module}/init_volt_cafe.sql"
-    destination = "/tmp/init_volt_cafe.sql"
   }
 
   provisioner "remote-exec" {
     inline = [
+      "sudo apt-get update",
+      "sudo apt-get install -y apache2 nodejs npm openssl postgresql postgresql-contrib",
+      "sudo mkdir -p /var/www/voltcafe",
+      "sudo chown ubuntu:ubuntu /var/www/voltcafe",
       "cd /var/www/voltcafe",
       "npm init -y",
       "npm install express axios dotenv querystring pg",
-      "sudo -u postgres psql -c \"ALTER USER postgres PASSWORD '${var.postgres_password}'\"",
-      "sudo -u postgres createdb volt_cafe || true",
-      "sudo -u postgres psql -d volt_cafe -f /tmp/init_volt_cafe.sql",
-      "POSTGRES_CONF=$(sudo find /etc/postgresql -name postgresql.conf | head -n 1)",
-      "PG_HBA_CONF=$(sudo find /etc/postgresql -name pg_hba.conf | head -n 1)",
-      "sudo sed -i \"s/^#*listen_addresses.*/listen_addresses = '*'/\" \"$POSTGRES_CONF\"",
-      "echo 'host all all 0.0.0.0/0 md5' | sudo tee -a \"$PG_HBA_CONF\"",
-      "sudo systemctl restart postgresql",
-      "pm2 start server.js --name voltcafe -f",
+      "sudo -u postgres psql -c \"ALTER USER postgres PASSWORD '${var.postgres_password}';\"",
+      "sudo -u postgres createdb volt_cafe",
+      "pm2 start server.js --name voltcafe -f || pm2 restart voltcafe",
       "pm2 save",
       "sudo pm2 startup systemd -u ubuntu --hp /home/ubuntu",
-      "sudo a2enmod ssl proxy proxy_http",
-      "sudo systemctl restart apache2"
+      "sudo systemctl enable apache2",
+      "sudo systemctl start apache2"
     ]
   }
 
