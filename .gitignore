@@ -1,5 +1,10 @@
 .env
 .env.sav
+.env.generated
+.env.sample
+volt-cafe.pem
+volt-cafe.pem.pub
+# Node.js dependencies
 node_modules/
 
 # Terraform files

@@ -1,0 +1,4 @@
+ID,Work Item Type,Parent,Title,Description,Assigned To,State,Tags,Acceptance Criteria,Story Points,Original Estimate,Completed Work
+774,Task,772,Develop backend API to serve inventory,<p>Create a RESTful API in Express to return inventory grouped by machine and product.</p>,,New,,"<p>- /vending/inventory returns machine, product, price, quantity<br>- Error handling for DB issues<br>- Supports future expansion</p>",,8,
+775,Task,772,Build frontend inventory listing (React Native),<p>List products grouped by machine with quantity and price using Expo + Axios.</p>,,New,,<p>- FlatList of items from API<br>- Machine + product displayed<br>- Quantity and price shown clearly</p>,,8,
+778,Task,777,Develop cart management logic (frontend),<p>Use Zustand store for managing cart contents with add/remove/clear features.</p>,,New,,<p>- Items can be added/removed from cart<br>- Item quantity can be incremented<br>- Clear cart resets all items</p>,,8,
