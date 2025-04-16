@@ -168,20 +168,36 @@ resource "null_resource" "deploy_files" {
 
   provisioner "remote-exec" {
     inline = [
-      "cd /var/www/voltcafe",
-      "npm init -y",
-      "npm install express axios dotenv querystring pg",
-      "sudo -u postgres psql -c \"ALTER USER postgres PASSWORD '${var.postgres_password}'\"",
-      "sudo -u postgres createdb volt_cafe || true",
-      "sudo -u postgres psql -d volt_cafe -f /tmp/init_volt_cafe.sql",
+      # 1. Set the password
+      "sudo -u postgres psql -c \"ALTER USER postgres WITH PASSWORD 'Test123'\" || echo 'Failed to set password'",
+
+      # 2. Update listen and auth settings
       "POSTGRES_CONF=$(sudo find /etc/postgresql -name postgresql.conf | head -n 1)",
       "PG_HBA_CONF=$(sudo find /etc/postgresql -name pg_hba.conf | head -n 1)",
       "sudo sed -i \"s/^#*listen_addresses.*/listen_addresses = '*'/\" \"$POSTGRES_CONF\"",
       "echo 'host all all 0.0.0.0/0 md5' | sudo tee -a \"$PG_HBA_CONF\"",
+      "echo 'host all all 127.0.0.1/32 md5' | sudo tee -a \"$PG_HBA_CONF\"",
+      "echo 'host all all ::1/128 md5' | sudo tee -a \"$PG_HBA_CONF\"",
+
+      # 3. Restart PostgreSQL to apply the above changes
       "sudo systemctl restart postgresql",
+
+      # 4. Now test password-based login
+      "PGPASSWORD='Test123' psql -U postgres -h localhost -d postgres -c '\\conninfo' || echo 'Password test failed'",
+
+      # 5. Proceed with app setup
+      "cd /var/www/voltcafe",
+      "npm init -y",
+      "npm install express axios dotenv querystring pg",
+      "sudo -u postgres createdb volt_cafe || true",
+      "sudo -u postgres psql -d volt_cafe -f /tmp/init_volt_cafe.sql",
+
+      # 6. Set up PM2
       "pm2 start server.js --name voltcafe -f",
       "pm2 save",
       "sudo pm2 startup systemd -u ubuntu --hp /home/ubuntu",
+
+      # 7. Enable required Apache modules
       "sudo a2enmod ssl proxy proxy_http",
       "sudo systemctl restart apache2"
     ]

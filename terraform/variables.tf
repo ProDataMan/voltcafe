@@ -25,6 +25,6 @@ variable "postgres_password" {
   type        = string
   # sensitive   = true
   description = "Password for the PostgreSQL postgres user"
-  default = "Pa$$w0rd"
+  default = "Test123"
 }
 
