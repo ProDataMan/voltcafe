@@ -188,7 +188,7 @@ resource "null_resource" "deploy_files" {
       # 5. Proceed with app setup
       "cd /var/www/voltcafe",
       "npm init -y",
-      "npm install express axios dotenv querystring pg",
+      "npm install express axios dotenv querystring pg cors",
       "sudo -u postgres createdb volt_cafe || true",
       "sudo -u postgres psql -d volt_cafe -f /tmp/init_volt_cafe.sql",
 

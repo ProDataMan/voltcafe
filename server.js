@@ -4,6 +4,8 @@ const axios = require('axios');
 const querystring = require('querystring');
 const fs = require('fs').promises;
 const { Pool } = require('pg');
+const cors = require('cors');
+
 const app = express();
 app.use(express.json());
 app.use(express.static('public'));
@@ -16,6 +18,13 @@ const pool = new Pool({
   password: process.env.POSTGRES_PASSWORD,
   port: parseInt(process.env.POSTGRES_PORT || '5432', 10),
 });
+
+
+app.use(cors({
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
 
 // Standard inventory API routes
 

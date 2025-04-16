@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { CartContext } from '../context/CartContext';
 
 const API_BASE = import.meta.env.VITE_API_HOST || 'http://localhost:3000';
+console.log("Using API:", API_BASE);
 
 const Menu = () => {
   const [inventory, setInventory] = useState([]);
