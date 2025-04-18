@@ -212,14 +212,21 @@ resource "null_resource" "deploy_files" {
 }
 
 resource "null_resource" "react_build" {
-  depends_on = [aws_instance.voltcafe_server]
+  depends_on = [local_file.env_file]
 
   provisioner "local-exec" {
     working_dir = "${path.module}/../VoltCafeUI"
-
     command = <<EOT
+      echo "Cleaning build artifacts..."
+      rm -rf dist
+
+      echo "Installing dependencies..."
       npm install
-      find src -type f -name '*.js' -exec sed -i 's|__API_HOST__|http://${aws_instance.voltcafe_server.public_ip}:3000|g' {} +
+
+      echo "Injecting API_HOST into source code..."
+      find src -type f \\( -name "*.js" -o -name "*.jsx" \\) -exec sed -i "s|__API_HOST__|http://${aws_instance.voltcafe_server.public_ip}:3000|g" {} +
+
+      echo "Building React app..."
       npm run build
     EOT
   }
@@ -228,7 +235,6 @@ resource "null_resource" "react_build" {
     always_run = "${timestamp()}"
   }
 }
-
 
 module "react_app" {
   source         = "./react_app_deploy"
