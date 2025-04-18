@@ -27,7 +27,8 @@ provisioner "remote-exec" {
     "sudo chmod -R 755 /var/www/voltcafe-ui",
     "sudo a2dissite 000-default.conf",
     "sudo a2ensite voltcafe-ui.conf",
-    "sudo systemctl reload apache2"
+    "sudo systemctl reload apache2",
+    "sudo systemctl restart apache2" # For
   ]
 }
 

@@ -76,6 +76,7 @@ const ManageMachines = () => {
 
   return (
     <div className="p-6">
+      <strong>API Endpoints from Manage Inventory:</strong> {API_BASE}
       <h1 className="text-2xl font-bold mb-4">Manage Machines</h1>
 
       <form onSubmit={handleSubmit} className="mb-6 space-y-4 max-w-md">

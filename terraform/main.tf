@@ -220,12 +220,10 @@ resource "null_resource" "react_build" {
     working_dir = "${path.module}/../VoltCafeUI"
     command = <<EOT
       echo "Cleaning build artifacts..."
-      rm -rf dist
-
+      rm -rf dist node_modules package-lock.json
       echo "Installing dependencies..."
       npm install
-
-      echo "Building React app with API_HOST..."
+      echo "Building React app with API_BASE..."
       REACT_APP_API_BASE=http://${aws_instance.voltcafe_server.public_ip}:3000 npm run build
     EOT
   }
