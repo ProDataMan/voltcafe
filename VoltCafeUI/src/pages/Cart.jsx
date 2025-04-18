@@ -1,7 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { CartContext } from '../context/CartContext';
 
-const API_BASE = import.meta.env.VITE_API_HOST || 'http://localhost:3000';
+const API_BASE = `http://${import.meta.env.POSTGRES_HOST}:3000`;
 
 const Cart = () => {
   const { cartItems, removeFromCart, clearCart } = useContext(CartContext);

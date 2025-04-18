@@ -210,3 +210,36 @@ resource "null_resource" "deploy_files" {
     host        = aws_instance.voltcafe_server.public_ip
   }
 }
+
+resource "null_resource" "react_build" {
+  depends_on = [aws_instance.voltcafe_server]
+
+  provisioner "local-exec" {
+    working_dir = "${path.module}/../VoltCafeUI"
+
+    command = <<EOT
+      npm install
+      find src -type f -name '*.js' -exec sed -i 's|__API_HOST__|http://${aws_instance.voltcafe_server.public_ip}:3000|g' {} +
+      npm run build
+    EOT
+  }
+
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+}
+
+
+module "react_app" {
+  source         = "./react_app_deploy"
+  server_ip      = aws_instance.voltcafe_server.public_ip
+  react_build_path = "${path.module}/../VoltCafeUI/dist"
+  private_key    = tls_private_key.voltcafe_key.private_key_pem
+  env_file_path  = local_file.env_file.filename
+
+  depends_on = [
+    null_resource.deploy_files,
+    null_resource.react_build
+  ]
+}
+

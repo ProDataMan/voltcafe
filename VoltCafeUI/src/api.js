@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.POSTGRES_HOST;
 
 export const fetchInventory = async () => {
   const res = await fetch(`${API_URL}/vending/inventory`);

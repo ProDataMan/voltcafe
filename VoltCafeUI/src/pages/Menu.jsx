@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { CartContext } from '../context/CartContext';
+import { API_BASE } from "../config";
 
-const API_BASE = import.meta.env.VITE_API_HOST || 'http://localhost:3000';
 console.log("Using API:", API_BASE);
 
 const Menu = () => {
@@ -26,9 +26,12 @@ const Menu = () => {
   }, []);
 
   return (
+    
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Menu</h1>
-
+      <p className="text-sm text-gray-600 mb-4">
+        <strong>API Endpoints from menu New:</strong> {API_BASE}
+      </p>
       {loading ? (
         <p>Loading inventory...</p>
       ) : (

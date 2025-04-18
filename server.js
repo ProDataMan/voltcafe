@@ -21,7 +21,7 @@ const pool = new Pool({
 
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: `http://${process.env.POSTGRES_HOST}:5432`,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
@@ -31,10 +31,25 @@ app.use(cors({
 // Get all inventory
 app.get('/vending/inventory', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM inventory ORDER BY id');
+    const result = await pool.query(`
+      SELECT 
+        inventory.id,
+        inventory.quantity,
+        inventory.slot_number,
+        inventory.machine_id,
+        inventory.product_id,
+        products.name AS product_name,
+        products.description,
+        products.price,
+        machines.name AS machine_name
+      FROM inventory
+      JOIN products ON inventory.product_id = products.id
+      JOIN machines ON inventory.machine_id = machines.id
+      ORDER BY inventory.id
+    `);
     res.json(result.rows);
   } catch (err) {
-    console.error('Error fetching inventory:', err);
+    console.error('Error fetching enriched inventory:', err);
     res.status(500).json({ error: 'Failed to fetch inventory' });
   }
 });
@@ -117,6 +132,65 @@ app.post('/vending/order', async (req, res) => {
     res.status(500).json({ error: 'Order failed' });
   } finally {
     client.release();
+  }
+});
+
+// Get all machines
+app.get('/vending/machines', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM machines ORDER BY id');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching machines:', err);
+    res.status(500).json({ error: 'Failed to fetch machines' });
+  }
+});
+
+// Create a new machine
+app.post('/vending/machines', async (req, res) => {
+  const { name, type, location, mdb_address } = req.body;
+  try {
+    const result = await pool.query(
+      `INSERT INTO machines (name, type, location, mdb_address)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [name, type, location, mdb_address]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error creating machine:', err);
+    res.status(500).json({ error: 'Failed to create machine' });
+  }
+});
+
+// Update a machine
+app.put('/vending/machines/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, type, location, mdb_address, active } = req.body;
+  try {
+    const result = await pool.query(
+      `UPDATE machines
+       SET name = $1, type = $2, location = $3, mdb_address = $4, active = $5
+       WHERE id = $6 RETURNING *`,
+      [name, type, location, mdb_address, active, id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Machine not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error updating machine:', err);
+    res.status(500).json({ error: 'Failed to update machine' });
+  }
+});
+
+// Delete a machine
+app.delete('/vending/machines/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query('DELETE FROM machines WHERE id = $1 RETURNING *', [id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Machine not found' });
+    res.json({ message: 'Machine deleted', machine: result.rows[0] });
+  } catch (err) {
+    console.error('Error deleting machine:', err);
+    res.status(500).json({ error: 'Failed to delete machine' });
   }
 });
 

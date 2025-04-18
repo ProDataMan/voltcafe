@@ -23,6 +23,12 @@ a {
 a:hover {
   color: #535bf2;
 }
+/* index.css */
+body {
+  background-color: #f3f4f6; /* Equivalent to bg-gray-100 */
+  color: #111827; /* Equivalent to text-gray-900 */
+  font-family: 'Inter', sans-serif;
+}
 
 body {
   margin: 0;

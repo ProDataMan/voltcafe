@@ -12,3 +12,11 @@ output "updated_env_content" {
 output "public_ip" {
   value = aws_instance.voltcafe_server.public_ip
 }
+
+output "server_ip" {
+  value = aws_instance.voltcafe_server.public_ip
+}
+
+output "env_file_path" {
+  value = local_file.env_file.filename
+}
