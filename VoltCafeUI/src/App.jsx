@@ -1,7 +1,6 @@
 // src/App.jsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar.jsx'
 import Menu from './pages/Menu';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
@@ -18,11 +17,11 @@ function App() {
         <div className="min-h-screen bg-gray-100 text-gray-900">
           <Navbar />
           <Routes>
-            <Route path="/" element={<ManageInventory />} />
+            <Route path="/" element={<Menu />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/orders" element={<Orders />} />
-            <Route path="/manage-inventory" element={<Menu />} />
+            <Route path="/manage-inventory" element={<ManageInventory />} />
             <Route path="/manage-machines" element={<ManageMachines />} />
           </Routes>
         </div>
