@@ -223,9 +223,9 @@ resource "null_resource" "react_build" {
       rm -rf dist node_modules package-lock.json
       echo "Installing dependencies..."
       npm install > build-install.log 2>&1 || { echo "npm install failed"; cat build-install.log; exit 1; }
-      echo "Building React app with API_BASE..."
+      echo "Building React app with VITE_API_BASE..."
       echo "EC2 Public IP: ${aws_instance.voltcafe_server.public_ip}" >> build.log
-      export REACT_APP_API_BASE=http://${aws_instance.voltcafe_server.public_ip}:3000
+      export VITE_API_BASE=http://${aws_instance.voltcafe_server.public_ip}:3000
       npm run build > build.log 2>&1 || { echo "npm run build failed"; cat build.log; exit 1; }
       echo "Verifying dist folder..."
       ls -l dist >> build.log
