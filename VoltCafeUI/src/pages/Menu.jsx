@@ -30,7 +30,7 @@ const Menu = () => {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Menu</h1>
       <p className="text-sm text-gray-600 mb-4">
-        <strong>API Endpoints from menu New:</strong> {API_BASE}
+        <strong>API Endpoints from menu:</strong> {API_BASE}
       </p>
       {loading ? (
         <p>Loading inventory...</p>

@@ -21,7 +21,7 @@ const pool = new Pool({
 
 
 app.use(cors({
-  origin: `http://${process.env.POSTGRES_HOST}:5432`,
+  origin: `http://${process.env.POSTGRES_HOST}`,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));

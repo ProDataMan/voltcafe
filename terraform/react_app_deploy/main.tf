@@ -12,13 +12,6 @@ resource "null_resource" "react_deploy" {
     }
   }
 
-
-provisioner "file" {
-source = "${path.module}/../../.env.generated"
-destination = "/home/ubuntu/.env.production"
-
-}
-
   provisioner "file" {
     source      = "${path.module}/apache/voltcafe-ui.conf"
     destination = "/tmp/voltcafe-ui.conf"
